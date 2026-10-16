@@ -19,6 +19,10 @@ public class UserDataDto
     public JsonElement? PdfAnnotations { get; set; }
     public JsonElement? PdfBookmarks { get; set; }
     public int? DataVersion { get; set; } = 1;
+    public long? ResetEpoch { get; set; } = 0;
+    public string? DeviceId { get; set; }
+    public long? Revision { get; set; }
+    public string? ContentHash { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
 
@@ -27,6 +31,10 @@ public class SyncCheckResponse
     public bool HasData { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public int DataVersion { get; set; }
+    public long ResetEpoch { get; set; }
+    public string? DeviceId { get; set; }
+    public long Revision { get; set; }
+    public string? ContentHash { get; set; }
     public long ServerTimeUnixMs { get; set; }
 }
 

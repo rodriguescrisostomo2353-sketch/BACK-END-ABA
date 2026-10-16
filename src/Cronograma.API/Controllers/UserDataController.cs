@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Cronograma.API.Data;
 using Cronograma.API.Models;
 using Cronograma.API.Models.DTOs;
+using Cronograma.API.Services;
 
 namespace Cronograma.API.Controllers;
 
@@ -66,6 +67,10 @@ public class UserDataController : ControllerBase
             PdfAnnotations = JsonDocument.Parse(data.PdfAnnotationsJson).RootElement,
             PdfBookmarks = JsonDocument.Parse(data.PdfBookmarksJson).RootElement,
             DataVersion = data.DataVersion,
+            ResetEpoch = data.ResetEpoch,
+            DeviceId = data.DeviceId,
+            Revision = data.Revision,
+            ContentHash = data.ContentHash,
             UpdatedAt = data.UpdatedAt
         });
     }
@@ -87,12 +92,12 @@ public class UserDataController : ControllerBase
             _context.UserData.Add(data);
         }
 
-        // Atualiza campos JSON
+        // Atualiza campos JSON com sanitização e desduplicação rigorosa
         if (payload.Materias.HasValue)
-            data.MateriasJson = payload.Materias.Value.GetRawText();
+            data.MateriasJson = DataSanitizer.SanitizeMateriasJson(payload.Materias.Value.GetRawText());
 
         if (payload.NaoClassificado.HasValue)
-            data.NaoClassificadoJson = payload.NaoClassificado.Value.GetRawText();
+            data.NaoClassificadoJson = DataSanitizer.SanitizeStringArray(payload.NaoClassificado.Value.GetRawText());
 
         if (payload.Schedules.HasValue)
             data.SchedulesJson = payload.Schedules.Value.GetRawText();
@@ -119,7 +124,7 @@ public class UserDataController : ControllerBase
             data.SpacedReviewsJson = payload.SpacedReviews.Value.GetRawText();
 
         if (payload.StudyLog.HasValue)
-            data.StudyLogJson = payload.StudyLog.Value.GetRawText();
+            data.StudyLogJson = DataSanitizer.SanitizeStudyLogJson(payload.StudyLog.Value.GetRawText());
 
         if (!string.IsNullOrEmpty(payload.Theme))
             data.Theme = payload.Theme;
@@ -133,10 +138,22 @@ public class UserDataController : ControllerBase
         if (payload.DataVersion.HasValue)
             data.DataVersion = payload.DataVersion.Value;
 
+        if (payload.ResetEpoch.HasValue && payload.ResetEpoch.Value > data.ResetEpoch)
+            data.ResetEpoch = payload.ResetEpoch.Value;
+
+        if (!string.IsNullOrEmpty(payload.DeviceId))
+            data.DeviceId = payload.DeviceId;
+
+        if (payload.Revision.HasValue)
+            data.Revision = payload.Revision.Value;
+
+        if (!string.IsNullOrEmpty(payload.ContentHash))
+            data.ContentHash = payload.ContentHash;
+
         data.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        _logger.LogInformation("Dados sincronizados com sucesso para usuário {UserId}", userId);
+        _logger.LogInformation("Dados sincronizados com sucesso para usuário {UserId} (DeviceId: {DeviceId}, Rev: {Rev}, Epoch: {Epoch})", userId, data.DeviceId, data.Revision, data.ResetEpoch);
 
         return Ok(new SyncResponse
         {
@@ -152,7 +169,7 @@ public class UserDataController : ControllerBase
         var userId = GetCurrentUserId();
         var data = await _context.UserData
             .AsNoTracking()
-            .Select(d => new { d.UserId, d.UpdatedAt, d.DataVersion })
+            .Select(d => new { d.UserId, d.UpdatedAt, d.DataVersion, d.ResetEpoch, d.DeviceId, d.Revision, d.ContentHash })
             .FirstOrDefaultAsync(d => d.UserId == userId);
 
         return Ok(new SyncCheckResponse
@@ -160,6 +177,10 @@ public class UserDataController : ControllerBase
             HasData = data != null,
             UpdatedAt = data?.UpdatedAt,
             DataVersion = data?.DataVersion ?? 1,
+            ResetEpoch = data?.ResetEpoch ?? 0,
+            DeviceId = data?.DeviceId,
+            Revision = data?.Revision ?? 1,
+            ContentHash = data?.ContentHash,
             ServerTimeUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         });
     }
