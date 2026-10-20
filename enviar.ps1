@@ -21,6 +21,9 @@ if ([string]::IsNullOrWhiteSpace($Mensagem)) {
     $Mensagem = "Atualizacao do backend C# ($dataHora)"
 }
 
+Write-Host "Sincronizando com o repositorio remoto (git pull --rebase)..." -ForegroundColor Cyan
+& git pull --rebase origin main
+
 Write-Host "Adicionando arquivos..." -ForegroundColor Cyan
 & git add .
 
