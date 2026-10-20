@@ -21,9 +21,6 @@ if ([string]::IsNullOrWhiteSpace($Mensagem)) {
     $Mensagem = "Atualizacao do backend C# ($dataHora)"
 }
 
-Write-Host "Sincronizando com o repositorio remoto (git pull --rebase)..." -ForegroundColor Cyan
-& git pull --rebase origin main
-
 Write-Host "Adicionando arquivos..." -ForegroundColor Cyan
 & git add .
 
@@ -32,6 +29,9 @@ if (-not [string]::IsNullOrWhiteSpace($staged)) {
     Write-Host "Criando commit: $Mensagem..." -ForegroundColor Cyan
     & git commit -m "$Mensagem"
 }
+
+Write-Host "Sincronizando com o repositorio remoto (git pull --rebase)..." -ForegroundColor Cyan
+& git pull --rebase origin main
 
 Write-Host "Enviando para o GitHub (git push origin main)..." -ForegroundColor Cyan
 & git push -u origin main
